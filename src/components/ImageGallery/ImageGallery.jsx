@@ -1,6 +1,6 @@
-import { Component } from 'react';
+import { useEffect, useState } from 'react';
 import Loader from 'react-loader-spinner';
-import fetchImages from 'service/Api';
+import fetchData from 'service/Api';
 import scrollContent from 'utils/scroll';
 
 import ImageGalleryList from 'components/ImageGallery/ImageGalleryList';
@@ -11,114 +11,116 @@ import {
   NothingFoundMessage,
 } from 'components/Notices/Notices';
 
-class ImageGallery extends Component {
-  state = {
-    images: [],
-    page: 1,
-    loadMore: false,
-    error: null,
-    status: 'idle',
-    showModal: false,
-    largeImageURL: '',
-    imageAlt: '',
-  };
+function ImageGallery({ searchQuery }) {
+  const [images, setImages] = useState([]);
+  const [page, setPage] = useState(1);
+  const [loadMore, setLoadMore] = useState(false);
+  const [error, setError] = useState(null);
+  const [status, setStatus] = useState('idle');
+  const [showModal, setShowModal] = useState(false);
+  const [largeImageURL, setLargeImageURL] = useState('');
+  const [imageAlt, setImageAlt] = useState('');
 
-  componentDidUpdate(prevProps, prevState) {
-    const prevSearchQuery = prevProps.searchQuery;
-    const nextSearchQuery = this.props.searchQuery;
-    const prevPage = prevState.page;
-    const nextPage = this.state.page;
+  // const prevUmageRef = useRef();
+  // prevUmageRef.current = images;
+  // const prevStateImages = prevUmageRef.current;
 
-    if (prevSearchQuery !== nextSearchQuery) {
-      this.setState({ status: 'pending' });
-
-      fetchImages(nextSearchQuery, nextPage)
-        .then(images => {
-          this.setState({
-            images: [...prevState.images, ...images],
-            loadMore: true,
-            status: 'resolved',
-          });
-        })
-        .catch(error => this.setState({ error, status: 'rejected' })); //== если не 404
+  useEffect(() => {
+    if (!searchQuery) {
+      return;
     }
-    if (prevPage !== nextPage) {
-      fetchImages(nextSearchQuery, nextPage)
-        .then(images => {
-          this.setState({
-            images: [...prevState.images, ...images],
-            loadMore: true,
-            status: 'resolved',
-          });
+    console.log(page);
+    if (page === 1) {
+      setStatus('pending');
+    }
+
+    fetchData(searchQuery, page)
+      .then(newImages => {
+        // setStatus('pending');
+        // setImages([...newImages]);
+        setImages(images => [...images, ...newImages]);
+        setLoadMore(true);
+        setStatus('resolved');
+        if (page > 1) {
           scrollContent();
-        })
-        .catch(error => this.setState({ error, status: 'rejected' })); //== если не 404
-    }
-  }
+        }
+      })
+      .catch(error => {
+        setError(error);
+        setStatus('rejected');
+      }); //== если не 404
+  }, [page, searchQuery]);
 
-  onLoadMore = () => {
-    const { page } = this.state;
-    this.setState({ page: page + 1 });
+  const onLoadMore = () => {
+    setPage(page + 1);
+    console.log(page, images);
   };
 
-  toggleModal = () => {
-    this.setState(({ showModal }) => ({ showModal: !showModal }));
+  const toggleModal = () => {
+    setShowModal(!showModal);
   };
 
-  onImageClick = e => {
+  const onImageClick = e => {
     const dataSrc = e.target.dataset.src;
     const alt = e.target.alt;
-    this.setState({
-      largeImageURL: dataSrc,
-      imageAlt: alt,
-      showModal: true,
-    });
+    setLargeImageURL(dataSrc);
+    setImageAlt(alt);
+    setShowModal(true);
   };
 
-  render() {
-    const {
-      state: {
-        status,
-        error,
-        images,
-        loadMore,
-        showModal,
-        largeImageURL,
-        imageAlt,
-      },
-      onImageClick,
-      onLoadMore,
-      toggleModal,
-    } = this;
+  if (status === 'idle') return <ShearchMessage />;
 
-    if (status === 'idle') return <ShearchMessage />;
+  if (status === 'pending')
+    return <Loader type="ThreeDots" color="#3f51b5" height={80} width={80} />;
 
-    if (status === 'pending')
-      return <Loader type="ThreeDots" color="#3f51b5" height={80} width={80} />;
+  if (status === 'rejected') return <h1>{error.message}</h1>;
 
-    if (status === 'rejected') return <h1>{error.message}</h1>;
+  if (status === 'resolved' && images.length < 1)
+    return <NothingFoundMessage />;
 
-    if (status === 'resolved' && images.length < 1)
-      return <NothingFoundMessage />;
+  if (status === 'resolved')
+    return (
+      <div>
+        <ImageGalleryList images={images} onImageClick={onImageClick} />
+        {loadMore && <Button onClick={onLoadMore} />}
 
-    if (status === 'resolved')
-      return (
-        <div>
-          <ImageGalleryList images={images} onImageClick={onImageClick} />
-          {loadMore && <Button onClick={onLoadMore} />}
-
-          {showModal && (
-            <Modal onClose={toggleModal}>
-              <img
-                src={largeImageURL}
-                alt={imageAlt}
-                style={{ maxHeight: '80vh', background: 'white' }}
-              />
-            </Modal>
-          )}
-        </div>
-      );
-  }
+        {showModal && (
+          <Modal onClose={toggleModal}>
+            <img
+              src={largeImageURL}
+              alt={imageAlt}
+              style={{ maxHeight: '80vh', background: 'white' }}
+            />
+          </Modal>
+        )}
+      </div>
+    );
 }
 
 export default ImageGallery;
+
+// if (status === 'pending')
+//   return (
+//     <>
+//       <Loader type="ThreeDots" color="#3f51b5" height={80} width={80} />
+
+//       {status === 'resolved' && images.length < 1 && <NothingFoundMessage />}
+
+//       {status === 'resolved' && (
+//         <div>
+//           <ImageGalleryList images={images} onImageClick={onImageClick} />
+//           {loadMore && <Button onClick={onLoadMore} />}
+
+//           {showModal && (
+//             <Modal onClose={toggleModal}>
+//               <img
+//                 src={largeImageURL}
+//                 alt={imageAlt}
+//                 style={{ maxHeight: '80vh', background: 'white' }}
+//               />
+//             </Modal>
+//           )}
+//         </div>
+//       )}
+//     </>
+//   );
