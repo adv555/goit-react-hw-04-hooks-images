@@ -37,40 +37,36 @@ function ImageGallery({ searchQuery }) {
     setImages([]);
     setError(null);
 
-    fetchData(searchQuery)
-      .then(newImages => {
-        setImages(images => [...images, ...newImages]);
-        setLoadMore(true);
-        setStatus(Status.RESOLVED);
-      })
-      .catch(error => {
-        setError(error);
-        setStatus(Status.REJECTED);
-      });
+    fetchImages(searchQuery);
   }, [searchQuery]);
 
   useEffect(() => {
     if (!searchQuery) {
       return;
     }
+    fetchImages(query, page);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
 
+  const fetchImages = (query, page = 1) => {
     fetchData(query, page)
       .then(newImages => {
         setImages(images => [...images, ...newImages]);
         setLoadMore(true);
         setStatus(Status.RESOLVED);
-        scrollContent();
+        if (page > 1) {
+          scrollContent();
+        }
       })
       .catch(error => {
         setError(error);
         setStatus(Status.REJECTED);
       });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
+  };
 
   const onLoadMore = () => {
     setPage(page + 1);
-    console.log(page, images);
+    // console.log(page, images);
   };
 
   const toggleModal = () => {
