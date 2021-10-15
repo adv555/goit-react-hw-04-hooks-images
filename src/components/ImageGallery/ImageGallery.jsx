@@ -11,45 +11,62 @@ import {
   NothingFoundMessage,
 } from 'components/Notices/Notices';
 
+const Status = {
+  IDLE: 'idle',
+  PENDING: 'pending',
+  RESOLVED: 'resolved',
+  REJECTED: 'rejected',
+};
 function ImageGallery({ searchQuery }) {
+  const [query, setQuery] = useState('');
   const [images, setImages] = useState([]);
   const [page, setPage] = useState(1);
   const [loadMore, setLoadMore] = useState(false);
   const [error, setError] = useState(null);
-  const [status, setStatus] = useState('idle');
+  const [status, setStatus] = useState(Status.IDLE);
   const [showModal, setShowModal] = useState(false);
   const [largeImageURL, setLargeImageURL] = useState('');
   const [imageAlt, setImageAlt] = useState('');
-
-  // const prevUmageRef = useRef();
-  // prevUmageRef.current = images;
-  // const prevStateImages = prevUmageRef.current;
 
   useEffect(() => {
     if (!searchQuery) {
       return;
     }
-    console.log(page);
-    if (page === 1) {
-      setStatus('pending');
-    }
+    setStatus(Status.PENDING);
+    setQuery(searchQuery);
+    setImages([]);
+    setError(null);
 
-    fetchData(searchQuery, page)
+    fetchData(searchQuery)
       .then(newImages => {
-        // setStatus('pending');
-        // setImages([...newImages]);
         setImages(images => [...images, ...newImages]);
         setLoadMore(true);
-        setStatus('resolved');
-        if (page > 1) {
-          scrollContent();
-        }
+        setStatus(Status.RESOLVED);
       })
       .catch(error => {
         setError(error);
-        setStatus('rejected');
-      }); //== если не 404
-  }, [page, searchQuery]);
+        setStatus(Status.REJECTED);
+      });
+  }, [searchQuery]);
+
+  useEffect(() => {
+    if (!searchQuery) {
+      return;
+    }
+
+    fetchData(query, page)
+      .then(newImages => {
+        setImages(images => [...images, ...newImages]);
+        setLoadMore(true);
+        setStatus(Status.RESOLVED);
+        scrollContent();
+      })
+      .catch(error => {
+        setError(error);
+        setStatus(Status.REJECTED);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
 
   const onLoadMore = () => {
     setPage(page + 1);
@@ -68,17 +85,17 @@ function ImageGallery({ searchQuery }) {
     setShowModal(true);
   };
 
-  if (status === 'idle') return <ShearchMessage />;
+  if (status === Status.IDLE) return <ShearchMessage />;
 
-  if (status === 'pending')
+  if (status === Status.PENDING)
     return <Loader type="ThreeDots" color="#3f51b5" height={80} width={80} />;
 
-  if (status === 'rejected') return <h1>{error.message}</h1>;
+  if (status === Status.REJECTED) return <h1>{error.message}</h1>;
 
-  if (status === 'resolved' && images.length < 1)
+  if (status === Status.RESOLVED && images.length < 1)
     return <NothingFoundMessage />;
 
-  if (status === 'resolved')
+  if (status === Status.RESOLVED)
     return (
       <div>
         <ImageGalleryList images={images} onImageClick={onImageClick} />
@@ -98,29 +115,3 @@ function ImageGallery({ searchQuery }) {
 }
 
 export default ImageGallery;
-
-// if (status === 'pending')
-//   return (
-//     <>
-//       <Loader type="ThreeDots" color="#3f51b5" height={80} width={80} />
-
-//       {status === 'resolved' && images.length < 1 && <NothingFoundMessage />}
-
-//       {status === 'resolved' && (
-//         <div>
-//           <ImageGalleryList images={images} onImageClick={onImageClick} />
-//           {loadMore && <Button onClick={onLoadMore} />}
-
-//           {showModal && (
-//             <Modal onClose={toggleModal}>
-//               <img
-//                 src={largeImageURL}
-//                 alt={imageAlt}
-//                 style={{ maxHeight: '80vh', background: 'white' }}
-//               />
-//             </Modal>
-//           )}
-//         </div>
-//       )}
-//     </>
-//   );

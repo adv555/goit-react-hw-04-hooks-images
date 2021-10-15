@@ -3,14 +3,9 @@ import { toast } from 'react-toastify';
 
 function SearchBar({ onSubmit }) {
   const [searchQuery, setSearchQuery] = useState('');
-  // state = {
-  //   searchQuery: '',
-  // };
 
   const handleChange = e => {
-    // console.log(e.currentTarget.value);
     setSearchQuery(e.currentTarget.value.toLowerCase());
-    // console.log(this.state);
   };
 
   const handleSubmit = e => {
@@ -19,12 +14,9 @@ function SearchBar({ onSubmit }) {
       return toast.error('Введите Ваш Запрос');
     }
 
-    // console.log(this.state);
     onSubmit(searchQuery);
     setSearchQuery('');
   };
-
-  // const { handleSubmit, handleChange } = this;
 
   return (
     <header className="Searchbar">
